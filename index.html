@@ -183,6 +183,12 @@
     margin: 0 0 18px;
     font-weight:600;
   }
+  #love-msg{
+    font-size: 1.25rem;
+    font-style: italic;
+    margin: -8px 0 20px;
+    text-shadow: 1px 2px 0 rgba(120,20,60,.4);
+  }
   .balloon{
     position:absolute;
     bottom:-120px;
@@ -257,12 +263,13 @@
   <div class="cake" id="win-icon">🎂</div>
   <h2>¡Feliz Cumpleaños Emily!</h2>
   <p>🎊 13 años 🎊</p>
+  <p id="love-msg">Te quiero mucho IBL 💗</p>
   <button id="playAgain">Jugar otra vez</button>
 </div>
 
 <script>
 (function(){
-  const COLS = 9, ROWS = 13;
+  const COLS = 13, ROWS = 19;
   let CELL = 34;
   const canvas = document.getElementById('maze');
   const ctx = canvas.getContext('2d');
@@ -277,7 +284,7 @@
     const maxW = Math.min(window.innerWidth * 0.86, 420);
     const maxH = window.innerHeight * 0.5;
     let cell = Math.floor(Math.min(maxW / COLS, maxH / ROWS));
-    cell = Math.max(20, Math.min(cell, 40));
+    cell = Math.max(14, Math.min(cell, 34));
     CELL = cell;
     canvas.width = COLS * CELL;
     canvas.height = ROWS * CELL;
