@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Laberinto de Emily 🎂</title>
+<style>
+  :root{
+    --pink:#ff6fa5;
+    --pink-deep:#e8447f;
+    --purple:#8a5fd6;
+    --gold:#ffc94d;
+    --cream:#fff6ef;
+    --ink:#4a2c4d;
+    --wall:#7c4fae;
+    --path:#fff0f7;
+    --bg1:#ffd6ea;
+    --bg2:#e0c8ff;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-sizing: border-box;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --cream:#2a1830;
+      --ink:#ffe3f2;
+      --path:#3a2140;
+      --bg1:#3a1d3f;
+      --bg2:#241636;
+    }
+  }
+  :root[data-theme="dark"]{
+    --cream:#2a1830;
+    --ink:#ffe3f2;
+    --path:#3a2140;
+    --bg1:#3a1d3f;
+    --bg2:#241636;
+  }
+  html,body{
+    height:100%;
+    margin:0;
+  }
+  html{ scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body{
+    font-family: 'Baloo 2','Trebuchet MS',sans-serif;
+    background: radial-gradient(circle at 20% 10%, var(--bg1), var(--bg2) 70%);
+    color: var(--ink);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    min-height:100%;
+    overflow-x:hidden;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  @font-face{
+    font-family:'Baloo 2';
+    src:local('Baloo 2');
+  }
+  h1{
+    font-size: clamp(1.4rem, 6vw, 2.1rem);
+    text-align:center;
+    margin: 14px 12px 2px;
+    color: var(--pink-deep);
+    text-shadow: 1px 2px 0 rgba(255,255,255,.5);
+    letter-spacing: .5px;
+  }
+  .subtitle{
+    font-size: .95rem;
+    opacity:.8;
+    margin-bottom: 10px;
+    text-align:center;
+    padding: 0 16px;
+  }
+  #hud{
+    display:flex;
+    gap:14px;
+    align-items:center;
+    margin-bottom:8px;
+    font-size:.95rem;
+    font-weight:600;
+  }
+  .pill{
+    background: rgba(255,255,255,.6);
+    border: 2px solid var(--pink);
+    border-radius: 999px;
+    padding: 4px 14px;
+  }
+  #wrap{
+    position:relative;
+    margin: 4px 0 10px;
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(120,40,110,.25);
+    background: var(--path);
+    padding: 10px;
+    border: 4px solid var(--gold);
+  }
+  canvas{
+    display:block;
+    border-radius: 10px;
+    touch-action:none;
+    max-width: 88vw;
+    max-height: 54vh;
+  }
+  #dpad{
+    display:grid;
+    grid-template-columns: 60px 60px 60px;
+    grid-template-rows: 60px 60px 60px;
+    gap:6px;
+    margin: 6px 0 18px;
+    user-select:none;
+  }
+  .dbtn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: linear-gradient(180deg, #ffffff, #ffe3f2);
+    border: 2px solid var(--pink);
+    border-radius: 14px;
+    font-size: 1.5rem;
+    color: var(--pink-deep);
+    box-shadow: 0 3px 0 var(--pink-deep);
+    cursor:pointer;
+  }
+  .dbtn:active{
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 var(--pink-deep);
+  }
+  #up{grid-column:2; grid-row:1;}
+  #left{grid-column:1; grid-row:2;}
+  #right{grid-column:3; grid-row:2;}
+  #down{grid-column:2; grid-row:3;}
+  #center{grid-column:2; grid-row:2; background:transparent; border:none; box-shadow:none;}
+
+  #resetBtn{
+    margin-bottom: 20px;
+    background: var(--purple);
+    color: #fff;
+    border:none;
+    padding: 10px 22px;
+    border-radius: 999px;
+    font-size: 1rem;
+    font-weight:700;
+    box-shadow: 0 3px 0 #5f3aa0;
+    cursor:pointer;
+  }
+  #resetBtn:active{ transform: translateY(2px); box-shadow: 0 1px 0 #5f3aa0; }
+
+  /* ---- celebration overlay ---- */
+  #celebration{
+    position: fixed;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    background: radial-gradient(circle at 50% 30%, rgba(255,201,77,.95), rgba(232,68,127,.96) 75%);
+    z-index: 50;
+    text-align:center;
+    padding: 20px;
+    box-sizing:border-box;
+    overflow:hidden;
+  }
+  #celebration.show{ display:flex; }
+  .cake{
+    font-size: clamp(4rem, 18vw, 7rem);
+    animation: pop .6s ease;
+  }
+  @keyframes pop{
+    0%{ transform: scale(0); opacity:0; }
+    70%{ transform: scale(1.15); opacity:1; }
+    100%{ transform: scale(1); }
+  }
+  #celebration h2{
+    color:#fff;
+    font-size: clamp(1.6rem, 7vw, 2.6rem);
+    margin: 10px 0 2px;
+    text-shadow: 2px 3px 0 rgba(120,20,60,.5);
+  }
+  #celebration p{
+    color:#fff5e6;
+    font-size: 1.1rem;
+    margin: 0 0 18px;
+    font-weight:600;
+  }
+  .balloon{
+    position:absolute;
+    bottom:-120px;
+    font-size: clamp(2rem, 8vw, 3.2rem);
+    animation-name: rise;
+    animation-timing-function: ease-in;
+    animation-iteration-count: 1;
+    opacity:.95;
+  }
+  @keyframes rise{
+    0%{ transform: translateY(0) translateX(0) rotate(0deg); }
+    50%{ transform: translateY(-60vh) translateX(20px) rotate(8deg); }
+    100%{ transform: translateY(-130vh) translateX(-10px) rotate(-6deg); opacity: 0; }
+  }
+  .confetti{
+    position:absolute;
+    top:-20px;
+    width:10px;
+    height:16px;
+    opacity:.9;
+    animation-name: fall;
+    animation-timing-function: linear;
+    animation-iteration-count: 1;
+  }
+  @keyframes fall{
+    0%{ transform: translateY(0) rotate(0deg); }
+    100%{ transform: translateY(115vh) rotate(360deg); }
+  }
+  #playAgain{
+    background:#fff;
+    color: var(--pink-deep);
+    border:none;
+    padding: 12px 26px;
+    border-radius: 999px;
+    font-size: 1.05rem;
+    font-weight:800;
+    box-shadow: 0 4px 0 rgba(120,20,60,.4);
+    cursor:pointer;
+    z-index: 2;
+  }
+  #playAgain:active{ transform: translateY(3px); box-shadow: 0 1px 0 rgba(120,20,60,.4); }
+  #win-icon{ z-index:2; }
+  #celebration h2, #celebration p{ z-index:2; }
+</style>
+</head>
+<body>
+
+<h1>🎉 El Laberinto de Emily 🎉</h1>
+<p class="subtitle">¡Ayuda al globo a llegar hasta la torta! 🎈➡️🍰</p>
+
+<div id="hud">
+  <div class="pill">👣 Pasos: <span id="steps">0</span></div>
+  <div class="pill">⏱️ <span id="time">0</span>s</div>
+</div>
+
+<div id="wrap">
+  <canvas id="maze"></canvas>
+</div>
+
+<div id="dpad">
+  <div class="dbtn" id="up">⬆️</div>
+  <div class="dbtn" id="left">⬅️</div>
+  <div id="center"></div>
+  <div class="dbtn" id="right">➡️</div>
+  <div class="dbtn" id="down">⬇️</div>
+</div>
+
+<button id="resetBtn">🔄 Nuevo laberinto</button>
+
+<div id="celebration">
+  <div id="fx-layer"></div>
+  <div class="cake" id="win-icon">🎂</div>
+  <h2>¡Feliz Cumpleaños Emily!</h2>
+  <p>🎊 13 años 🎊</p>
+  <button id="playAgain">Jugar otra vez</button>
+</div>
+
+<script>
+(function(){
+  const COLS = 9, ROWS = 13;
+  let CELL = 34;
+  const canvas = document.getElementById('maze');
+  const ctx = canvas.getContext('2d');
+  const stepsEl = document.getElementById('steps');
+  const timeEl = document.getElementById('time');
+  const celebration = document.getElementById('celebration');
+  const fxLayer = document.getElementById('fx-layer');
+
+  let grid, player, goal, steps, startTime, timerInterval, finished;
+
+  function sizeCanvas(){
+    const maxW = Math.min(window.innerWidth * 0.86, 420);
+    const maxH = window.innerHeight * 0.5;
+    let cell = Math.floor(Math.min(maxW / COLS, maxH / ROWS));
+    cell = Math.max(20, Math.min(cell, 40));
+    CELL = cell;
+    canvas.width = COLS * CELL;
+    canvas.height = ROWS * CELL;
+  }
+
+  function makeGrid(){
+    const g = [];
+    for(let y=0;y<ROWS;y++){
+      const row = [];
+      for(let x=0;x<COLS;x++){
+        row.push({x,y, visited:false, walls:{N:true,S:true,E:true,W:true}});
+      }
+      g.push(row);
+    }
+    return g;
+  }
+
+  function carve(g){
+    const stack = [];
+    let current = g[0][0];
+    current.visited = true;
+    stack.push(current);
+    const dirs = [
+      {name:'N', dx:0, dy:-1, opp:'S'},
+      {name:'S', dx:0, dy:1, opp:'N'},
+      {name:'E', dx:1, dy:0, opp:'W'},
+      {name:'W', dx:-1, dy:0, opp:'E'}
+    ];
+    while(stack.length){
+      current = stack[stack.length-1];
+      const neighbors = [];
+      for(const d of dirs){
+        const nx = current.x + d.dx, ny = current.y + d.dy;
+        if(nx>=0 && nx<COLS && ny>=0 && ny<ROWS && !g[ny][nx].visited){
+          neighbors.push({cell: g[ny][nx], dir: d});
+        }
+      }
+      if(neighbors.length === 0){
+        stack.pop();
+        continue;
+      }
+      const pick = neighbors[Math.floor(Math.random()*neighbors.length)];
+      current.walls[pick.dir.name] = false;
+      pick.cell.walls[pick.dir.opp] = false;
+      pick.cell.visited = true;
+      stack.push(pick.cell);
+    }
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,canvas.width, canvas.height);
+    // background
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--path') || '#fff0f7';
+    ctx.fillRect(0,0,canvas.width, canvas.height);
+
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--wall') || '#7c4fae';
+    ctx.lineWidth = Math.max(2, CELL*0.08);
+    ctx.lineCap = 'round';
+
+    for(let y=0;y<ROWS;y++){
+      for(let x=0;x<COLS;x++){
+        const c = grid[y][x];
+        const px = x*CELL, py = y*CELL;
+        ctx.beginPath();
+        if(c.walls.N){ ctx.moveTo(px,py); ctx.lineTo(px+CELL,py); }
+        if(c.walls.S){ ctx.moveTo(px,py+CELL); ctx.lineTo(px+CELL,py+CELL); }
+        if(c.walls.W){ ctx.moveTo(px,py); ctx.lineTo(px,py+CELL); }
+        if(c.walls.E){ ctx.moveTo(px+CELL,py); ctx.lineTo(px+CELL,py+CELL); }
+        ctx.stroke();
+      }
+    }
+
+    // goal (cake)
+    ctx.font = `${CELL*0.85}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🍰', goal.x*CELL + CELL/2, goal.y*CELL + CELL/2);
+
+    // player (balloon)
+    ctx.font = `${CELL*0.85}px serif`;
+    ctx.fillText('🎈', player.x*CELL + CELL/2, player.y*CELL + CELL/2);
+  }
+
+  function canMove(cell, dir){
+    return !cell.walls[dir];
+  }
+
+  function move(dir){
+    if(finished) return;
+    const c = grid[player.y][player.x];
+    if(!canMove(c, dir)) return;
+    if(dir==='N') player.y--;
+    else if(dir==='S') player.y++;
+    else if(dir==='E') player.x++;
+    else if(dir==='W') player.x--;
+    steps++;
+    stepsEl.textContent = steps;
+    draw();
+    if(player.x === goal.x && player.y === goal.y){
+      win();
+    }
+  }
+
+  function startTimer(){
+    startTime = Date.now();
+    clearInterval(timerInterval);
+    timerInterval = setInterval(()=>{
+      timeEl.textContent = Math.floor((Date.now()-startTime)/1000);
+    }, 250);
+  }
+
+  function newGame(){
+    finished = false;
+    celebration.classList.remove('show');
+    fxLayer.innerHTML = '';
+    grid = makeGrid();
+    carve(grid);
+    player = {x:0, y:0};
+    goal = {x:COLS-1, y:ROWS-1};
+    steps = 0;
+    stepsEl.textContent = 0;
+    timeEl.textContent = 0;
+    sizeCanvas();
+    draw();
+    startTimer();
+  }
+
+  function win(){
+    finished = true;
+    clearInterval(timerInterval);
+    launchCelebration();
+  }
+
+  function launchCelebration(){
+    celebration.classList.add('show');
+    const balloons = ['🎈','🎈','🎈','🎁','🎉','🎊','⭐️'];
+    const colors = ['#ff6fa5','#ffc94d','#8a5fd6','#5fd6c8','#ff9d5f'];
+    for(let i=0;i<24;i++){
+      const b = document.createElement('div');
+      b.className = 'balloon';
+      b.textContent = balloons[Math.floor(Math.random()*balloons.length)];
+      b.style.left = Math.random()*100 + '%';
+      b.style.animationDuration = (3 + Math.random()*2.5) + 's';
+      b.style.animationDelay = (Math.random()*1.2) + 's';
+      fxLayer.appendChild(b);
+    }
+    for(let i=0;i<40;i++){
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.style.left = Math.random()*100 + '%';
+      c.style.background = colors[Math.floor(Math.random()*colors.length)];
+      c.style.animationDuration = (2 + Math.random()*2) + 's';
+      c.style.animationDelay = (Math.random()*1.5) + 's';
+      c.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+      fxLayer.appendChild(c);
+    }
+  }
+
+  // controls
+  document.getElementById('up').addEventListener('click', ()=>move('N'));
+  document.getElementById('down').addEventListener('click', ()=>move('S'));
+  document.getElementById('left').addEventListener('click', ()=>move('W'));
+  document.getElementById('right').addEventListener('click', ()=>move('E'));
+  document.getElementById('resetBtn').addEventListener('click', newGame);
+  document.getElementById('playAgain').addEventListener('click', newGame);
+
+  window.addEventListener('keydown', (e)=>{
+    if(e.key === 'ArrowUp') move('N');
+    else if(e.key === 'ArrowDown') move('S');
+    else if(e.key === 'ArrowLeft') move('W');
+    else if(e.key === 'ArrowRight') move('E');
+  });
+
+  // swipe support
+  let touchStartX=0, touchStartY=0;
+  canvas.addEventListener('touchstart', (e)=>{
+    const t = e.changedTouches[0];
+    touchStartX = t.clientX; touchStartY = t.clientY;
+  }, {passive:true});
+  canvas.addEventListener('touchend', (e)=>{
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStartX;
+    const dy = t.clientY - touchStartY;
+    if(Math.abs(dx) > Math.abs(dy)){
+      if(Math.abs(dx) > 20) move(dx>0 ? 'E' : 'W');
+    } else {
+      if(Math.abs(dy) > 20) move(dy>0 ? 'S' : 'N');
+    }
+  }, {passive:true});
+
+  window.addEventListener('resize', ()=>{
+    if(!finished){ sizeCanvas(); draw(); }
+  });
+
+  newGame();
+})();
+</script>
+</body>
+</html>
